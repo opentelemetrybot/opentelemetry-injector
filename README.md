@@ -40,6 +40,7 @@ agents:
 - [Java](https://opentelemetry.io/docs/zero-code/java/)
 - [Node.js](https://opentelemetry.io/docs/zero-code/js/)
 - [.NET](https://opentelemetry.io/docs/zero-code/dotnet/)
+- [Ruby](https://github.com/open-telemetry/opentelemetry-ruby-instrumentation)
 - Python (disabled by default, see [Enabling Auto-Instrumentation for Python](#enabling-auto-instrumentation-for-python))
 
 ## Activation and Configuration
@@ -84,6 +85,8 @@ This method requires `root` privileges.
      agent files
    - `JVM_AUTO_INSTRUMENTATION_AGENT_PATH`: the path to the Java auto-instrumentation agent JAR file
    - `NODEJS_AUTO_INSTRUMENTATION_AGENT_PATH`: the path to the Node.js auto-instrumentation agent registration file
+   - `PYTHON_AUTO_INSTRUMENTATION_AGENT_PATH_PREFIX`: the path to the directory containing the Python auto-instrumentation agent files (Python is disabled by default, see [Enabling Auto-Instrumentation for Python](#enabling-auto-instrumentation-for-python))
+   - `RUBY_AUTO_INSTRUMENTATION_AGENT_PATH_PREFIX`: the path to the directory containing the Ruby auto-instrumentation gem bundle
    - `OTEL_INJECTOR_INCLUDE_PATHS`: a comma-separated list of glob patterns to match executable paths
    - `OTEL_INJECTOR_EXCLUDE_PATHS`: a comma-separated list of glob patterns to exclude executable paths
    - `OTEL_INJECTOR_INCLUDE_WITH_ARGUMENTS`: a comma-separated list of glob patterns to match process arguments
@@ -107,11 +110,12 @@ This method requires `root` privileges.
 
 4. Reboot the system or restart the applications/services for any changes to take effect. The `libotelinject.so` shared
    object library will then be preloaded for all subsequent processes and inject the environment variables from the
-   `/etc/opentelemetry/injector/injector.conf` configuration files for the process types you've configured (Java, .Net or Node.js).
+   `/etc/opentelemetry/injector/injector.conf` configuration files for the process types you've configured (Java, .Net, Node.js or Ruby).
 
 When providing your own instrumentation files (for example via environment variables like `DOTNET_AUTO_INSTRUMENTATION_AGENT_PATH_PREFIX`) the following directory structure is expected:
 - `JVM_AUTO_INSTRUMENTATION_AGENT_PATH`: This path must point to the Java auto-instrumentation agent JAR file `opentelemetry-javaagent.jar`.
 - `NODEJS_AUTO_INSTRUMENTATION_AGENT_PATH`: The path to an installation of the npm module `@opentelemetry/auto-instrumentations-node`.
+- `RUBY_AUTO_INSTRUMENTATION_AGENT_PATH_PREFIX`: this path must be a directory containing `glibc` and `musl` subdirectories. Depending on the libc flavor that the injector detects at startup, the matching subdirectory (a gem home with the `opentelemetry-auto-instrumentation.rb` entry point) is used.
 - `DOTNET_AUTO_INSTRUMENTATION_AGENT_PATH_PREFIX`: this path must be a directory that contains the following
   subdirectories and files:
    - For `x86_64` systems using `glibc`:
@@ -142,12 +146,14 @@ Check the following for details about the auto-instrumentation agents and furthe
 - [Java](https://opentelemetry.io/docs/zero-code/java/agent/configuration/)
 - [Node.js](https://opentelemetry.io/docs/zero-code/js/configuration/)
 - [.NET](https://opentelemetry.io/docs/zero-code/dotnet/configuration/)
+- [Ruby](https://github.com/open-telemetry/opentelemetry-ruby-instrumentation)
 
 ### Environment Modifications
 
 Here is an overview of the modifications that the injector will apply:
 
 * It sets (or appends to) `NODE_OPTIONS` to activate the Node.js instrumentation agent.
+* It sets (or prepends to) `RUBYOPT` to require the Ruby auto-instrumentation gem, and sets `OTEL_RUBY_ADDITIONAL_GEM_PATH` so the gem can locate its bundled dependencies. If `OTEL_RUBY_ADDITIONAL_GEM_PATH` is already set in the process's environment, the injector respects that value and also skips modifying `RUBYOPT` (the two variables are a coupled pair — injecting only the `-r` flag would make the gem look for its dependencies in the user-provided path and fail with `LoadError`).
 * It adds a `-javaagent` flag to `JAVA_TOOL_OPTIONS` to activate the Java OTel SDK.
 * It conditionally sets the required environment variables for activating the OpenTelemetry SDK for .NET:
     * `CORECLR_ENABLE_PROFILING`
@@ -330,6 +336,7 @@ Valid runtime names are:
 - `jvm`
 - `nodejs`
 - `python`
+- `ruby`
 
 The injector will log a warning for unknown runtime names in the comma-separated list.
 
@@ -340,6 +347,11 @@ jvm_auto_instrumentation_agent_path=/usr/lib/opentelemetry/jvm/javaagent.jar
 nodejs_auto_instrumentation_agent_path=/usr/lib/opentelemetry/nodejs/node_modules/@opentelemetry/auto-instrumentations-node/build/src/register.js
 auto_instrumentation_disabled=dotnet,python
 ```
+
+You can also disable a specific runtime by setting its agent-path environment variable (or configuration-file key)
+to the empty string. For example, `RUBY_AUTO_INSTRUMENTATION_AGENT_PATH_PREFIX=` disables Ruby auto-instrumentation
+for a single process without touching the shared configuration. The same applies to `PYTHON_AUTO_INSTRUMENTATION_AGENT_PATH_PREFIX`,
+`DOTNET_AUTO_INSTRUMENTATION_AGENT_PATH_PREFIX`, `JVM_AUTO_INSTRUMENTATION_AGENT_PATH`, and `NODEJS_AUTO_INSTRUMENTATION_AGENT_PATH`.
 
 Note that the injector might still add additional resource attributes to applications, by adding or extending
 `OTEL_RESOURCE_ATTRIBUTES`, even when auto-instrumentation is disabled.

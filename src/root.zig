@@ -13,6 +13,7 @@ const print = @import("print.zig");
 const proc_self_environ_values = @import("proc_self_environ_values.zig");
 const proc_self_environ_parser = @import("proc_self_environ_parser.zig");
 const python = @import("python.zig");
+const ruby = @import("ruby.zig");
 const res_attrs = @import("resource_attributes.zig");
 const types = @import("types.zig");
 const pattern_matcher = @import("patterns_matcher.zig");
@@ -68,6 +69,7 @@ fn initEnviron() callconv(.c) void {
     };
     dotnet.setLibcInfo(libc_info);
     python.setLibcInfo(libc_info);
+    ruby.setLibcInfo(libc_info);
     res_attrs.setLibcInfo(libc_info);
 
     const maybe_modified_resource_attributes = res_attrs.getModifiedOtelResourceAttributesValue(allocator) catch |err| {
@@ -113,6 +115,18 @@ fn initEnviron() callconv(.c) void {
         allocator,
         libc_info,
         python.pythonpath_env_var_name,
+        configuration,
+    );
+    modifyEnvironmentVariable(
+        allocator,
+        libc_info,
+        ruby.rubyopt_env_var_name,
+        configuration,
+    );
+    modifyEnvironmentVariable(
+        allocator,
+        libc_info,
+        ruby.ruby_additional_gem_path_env_var_name,
         configuration,
     );
     modifyEnvironmentVariable(
@@ -306,6 +320,25 @@ fn getEnvValue(
             original_value,
             configuration,
         );
+    } else if (std.mem.eql(u8, name, ruby.rubyopt_env_var_name)) {
+        // The two Ruby env vars are a coupled pair: our RUBYOPT entry file requires its bundled OpenTelemetry
+        // dependencies from OTEL_RUBY_ADDITIONAL_GEM_PATH. If the user has pre-set the gem path, we respect
+        // their value (see below) -- so we must also skip RUBYOPT here to avoid a hybrid boot where our entry
+        // file loads but its deps resolve against the user's path (LoadError on every Ruby process).
+        if (libcGetenv(lci.getenv_fn_ptr, ruby.ruby_additional_gem_path_env_var_name) != null) {
+            print.printInfo("Skipping the injection of the Ruby OpenTelemetry auto-instrumentation because \"{s}\" is already set to a user-provided value.", .{ruby.ruby_additional_gem_path_env_var_name});
+            return null;
+        }
+        return ruby.checkRubyAutoInstrumentationAgentAndGetModifiedRubyoptValue(
+            allocator,
+            original_value,
+            configuration,
+        );
+    } else if (std.mem.eql(u8, name, ruby.ruby_additional_gem_path_env_var_name)) {
+        // Respect a user-provided value; only set it ourselves when Ruby injection is active. The RUBYOPT branch
+        // above mirrors this decision by standing down when the user has already set this variable.
+        if (original_value != null) return null;
+        return ruby.getRubyAdditionalGemPath(allocator, configuration);
     } else if (std.mem.eql(u8, name, dotnet.coreclr_enable_profiling_env_var_name)) {
         if (dotnet.getDotnetValues(allocator, configuration)) |v| {
             return v.coreclr_enable_profiling;
