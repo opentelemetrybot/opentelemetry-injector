@@ -407,7 +407,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 - [Antoine Toulme](https://github.com/atoulme), [Splunk](https://www.splunk.com/)
 - [Bastian Krol](https://github.com/basti1302), [Dash0](https://www.dash0.com/)
 - [Jack Berg](https://github.com/jack-berg), [Grafana Labs](https://grafana.com/)
-- [Jacob Aronoff](https://github.com/jaronoff97), [Tero](https://www.usetero.com/)
 - [Michele Mancioppi](https://github.com/mmanciop), [Dash0](https://www.dash0.com/)
 - [Nikola Grcevski](https://github.com/grcevski), [Grafana Labs](https://grafana.com/)
 
@@ -417,3 +416,10 @@ For more information about the maintainer role, see the [community repository](h
 
 The code project was initially donated by [Splunk](https://www.splunk.com/) and later replaced with another code donation
 by [Dash0](https://www.dash0.com/).
+
+### Emeritus
+
+- [Jacob Aronoff](https://github.com/jaronoff97), Maintainer
+
+For more information about the emeritus role, see the
+[community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#emeritus-maintainerapprovertriager).
