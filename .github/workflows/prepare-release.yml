@@ -33,8 +33,16 @@ jobs:
       contents: write # required for pushing changes in prepare-release.sh
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: otelbot-token
         with:
+          client-id: ${{ vars.OTELBOT_CLIENT_ID }}
+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # zizmor: ignore[artipacked] v7.0.1; persisted App token pushes the release branch
+        with:
+          token: ${{ steps.otelbot-token.outputs.token }}
           fetch-tags: true
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
@@ -51,11 +59,6 @@ jobs:
             -override "$OVERRIDE" \
             -prerelease="$PRERELEASE" \
             -chloggen-dir ../../.chloggen
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: otelbot-token
-        with:
-          client-id: ${{ vars.OTELBOT_CLIENT_ID }}
-          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
       - name: Prepare release for injector
         env:
           GITHUB_TOKEN: ${{ steps.otelbot-token.outputs.token }}

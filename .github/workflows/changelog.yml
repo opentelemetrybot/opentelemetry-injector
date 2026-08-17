@@ -26,20 +26,19 @@ jobs:
   changelog:
     runs-on: ubuntu-24.04
     if: |
-      ${{ github.event_name == 'pull_request' &&
-          github.actor != 'dependabot[bot]' &&
-          !contains(github.event.pull_request.labels.*.name, 'dependencies') &&
-          !contains(github.event.pull_request.labels.*.name, 'Skip Changelog') &&
-          !startsWith(github.event.pull_request.title, 'chore') &&
-          !startsWith(github.event.pull_request.title, 'ci') &&
-          !startsWith(github.event.pull_request.title, 'test')
-      }}
+      github.actor != 'dependabot[bot]' &&
+      !contains(github.event.pull_request.labels.*.name, 'dependencies') &&
+      !contains(github.event.pull_request.labels.*.name, 'Skip Changelog') &&
+      !startsWith(github.event.pull_request.title, 'chore') &&
+      !startsWith(github.event.pull_request.title, 'ci') &&
+      !startsWith(github.event.pull_request.title, 'test')
     env:
       PR_HEAD: ${{ github.event.pull_request.head.sha }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
