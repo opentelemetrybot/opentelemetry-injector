@@ -17,9 +17,10 @@ jobs:
         with:
           client-id: ${{ vars.OTELBOT_INJECTOR_CLIENT_ID }}
           private-key: ${{ secrets.OTELBOT_INJECTOR_PRIVATE_KEY }}
+          permission-contents: write
 
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # zizmor: ignore[artipacked] v7.0.1; persisted App token pushes the release tag
         with:
           fetch-depth: 2
           # We are deliberately not using the default secrets.GITHUB_TOKEN here, since events from that token do not

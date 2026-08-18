@@ -20,8 +20,12 @@ jobs:
     steps:
       - name: Check out the codebase.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          use-cache: false
 
       - name: lint source code
         run: |
@@ -51,6 +55,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - run: mkdir -p artifacts
 
@@ -74,13 +80,18 @@ jobs:
           ls -laR artifacts || true
 
       - name: Release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
-        with:
-          body_path: release-notes.md
-          fail_on_unmatched_files: true
-          # RC tags (e.g. v0.10.0-rc.1) land as a draft release so maintainers
-          # can review the notes and artifacts before publishing; stable tags
-          # publish immediately.
-          draft: ${{ contains(github.ref_name, '-rc.') }}
-          files: |
-            artifacts/**/*
+        env:
+          DRAFT: ${{ contains(github.ref_name, '-rc.') }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -d '' files < <(find artifacts -type f -print0)
+          if (( ${#files[@]} == 0 )); then
+            echo "No release artifacts found."
+            exit 1
+          fi
+
+          args=(release create "$GITHUB_REF_NAME" "${files[@]}" --notes-file release-notes.md --verify-tag)
+          if [[ "$DRAFT" == "true" ]]; then
+            args+=(--draft)
+          fi
+          gh "${args[@]}"
